@@ -1,4 +1,6 @@
+/// <reference types="vite/client" />
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { productCategories } from './data/products';
 import { formatCPF, formatPhone, formatCurrency } from './utils/formatters';
 import { DocumentModal } from './components/DocumentModal';
@@ -19,6 +21,40 @@ declare global {
   }
 }
 
+function SplashScreen({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 2500);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8 }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC]"
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        className="flex flex-col items-center"
+      >
+        <img src="https://i.imgur.com/HnA5zoC.png" alt="Regina Ribas Doces Finos" className="w-64 h-auto mb-8 drop-shadow-2xl mix-blend-multiply" referrerPolicy="no-referrer" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+          className="text-center text-[#8B4513]"
+        >
+          <div className="w-12 h-12 border-4 border-[#F5F5DC] border-t-[#D4AF37] border-l-[#D4AF37] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="tracking-widest text-sm font-semibold uppercase">Carregando sistema...</p>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function App() {
   const [nomeCliente, setNomeCliente] = useState('');
   const [cpfCliente, setCpfCliente] = useState('');
@@ -28,8 +64,8 @@ export default function App() {
   const [dataEvento, setDataEvento] = useState('');
   const [localEvento, setLocalEvento] = useState('');
   
-  const [gasUrl, setGasUrl] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const gasUrl = import.meta.env.VITE_GAS_WEBAPP_URL || '';
+  const [showSplash, setShowSplash] = useState(true);
 
   const [items, setItems] = useState<OrderItem[]>([
     { id: '1', productName: '', quantity: 1, unitPrice: 0, total: 0 }
@@ -238,38 +274,27 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] font-serif flex flex-col">
-      <header className="bg-gradient-to-br from-[#8B4513] to-[#A0522D] text-white text-center py-8 shadow-md">
-        <h1 className="text-3xl tracking-widest font-bold mb-2">Regina Ribas</h1>
-        <p className="text-sm tracking-widest opacity-90">DOCES FINOS</p>
-      </header>
+    <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      </AnimatePresence>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto my-8 bg-white p-6 md:p-10 rounded-xl shadow-xl">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showSplash ? 0 : 1 }}
+        transition={{ duration: 0.8 }}
+        className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] font-serif flex flex-col"
+      >
+        <header className="bg-white text-[#8B4513] text-center py-8 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
+          <img src="https://i.imgur.com/HnA5zoC.png" alt="Regina Ribas Logo" className="w-32 h-auto mb-4 drop-shadow-md mix-blend-multiply" referrerPolicy="no-referrer" />
+          <h1 className="text-3xl tracking-widest font-bold mb-2">Regina Ribas</h1>
+          <p className="text-sm tracking-widest opacity-90 font-bold">DOCES FINOS</p>
+        </header>
+
+        <main className="flex-1 max-w-4xl w-full mx-auto my-8 bg-white p-6 md:p-10 rounded-xl shadow-xl">
         <div className="flex justify-between items-center border-b-2 border-[#D4AF37] pb-2 mb-6">
           <h2 className="text-2xl text-[#8B4513] text-center w-full">Gerador de Orçamentos e Contratos</h2>
         </div>
-
-        {/* Configuration toggle (For testing outside of GAS) */}
-        {!window.google?.script?.run && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            <p className="mb-2"><strong>Modo Preview:</strong> Este aplicativo não está rodando dentro do Google Apps Script.</p>
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="text-[#8B4513] underline font-bold">
-              {isSettingsOpen ? 'Ocultar Configuração' : 'Configurar URL do Web App (Opcional)'}
-            </button>
-            {isSettingsOpen && (
-              <div className="mt-3">
-                <input 
-                  type="text" 
-                  value={gasUrl} 
-                  onChange={(e) => setGasUrl(e.target.value)} 
-                  placeholder="https://script.google.com/macros/s/SEU_ID/exec"
-                  className="w-full p-2 border border-yellow-300 rounded focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
-                <p className="text-xs mt-1">Se não preenchido, a geração do PDF será apenas simulada visualmente.</p>
-              </div>
-            )}
-          </div>
-        )}
 
         <form className="space-y-8" onSubmit={e => e.preventDefault()}>
           
@@ -431,6 +456,7 @@ export default function App() {
         onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))} 
         onRetry={() => generateDocument(modalState.type)}
       />
-    </div>
+      </motion.div>
+    </>
   );
 }
