@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { productCategories } from './data/products';
 import { formatCPF, formatPhone, formatCurrency } from './utils/formatters';
 import { DocumentModal } from './components/DocumentModal';
+import { generateClientPDF } from './utils/pdfGenerator';
 import { OrderItem } from './types';
 
 // Add Google Script Run type definition for TypeScript
@@ -64,7 +65,6 @@ export default function App() {
   const [dataEvento, setDataEvento] = useState('');
   const [localEvento, setLocalEvento] = useState('');
   
-  const gasUrl = import.meta.env.VITE_GAS_WEBAPP_URL || '';
   const [showSplash, setShowSplash] = useState(true);
 
   const [items, setItems] = useState<OrderItem[]>([
@@ -221,56 +221,48 @@ export default function App() {
       return;
     }
 
-    // 2. Fallback to POST fetch if a GAS Web App URL is provided
-    if (gasUrl) {
-      try {
-        const response = await fetch(gasUrl, {
-          method: 'POST',
-          mode: 'no-cors', // Apps script web apps often require no-cors if not returning proper headers
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        // Because of no-cors, we can't read the response. We just assume success if it didn't throw.
-        updateStepDelay(5, 500);
-        setTimeout(() => {
-          setModalState({
-            isOpen: true,
-            type: tipo,
-            status: 'success',
-            step: 5,
-            fileName: `${tipo === 'orcamento' ? 'Orçamento' : 'Contrato'}_${nomeCliente}.pdf`,
-            fileSize: 'N/A (CORS)',
-            fileUrl: '#' // URL is inaccessible with no-cors, tell user to check Drive
-          });
-        }, 1000);
-      } catch (error: any) {
-        setModalState({
-          isOpen: true,
-          type: tipo,
-          status: 'error',
-          step: 5,
-          errorMsg: error.message
-        });
-      }
-      return;
-    }
+    // 2. Fallback: Generate Client-side PDF
+    try {
+      updateStepDelay(2, 500);
+      updateStepDelay(3, 1000);
+      
+      const pdfData = {
+        nomeCliente,
+        cpfCliente,
+        evento,
+        localEvento,
+        dataEvento,
+        formaPagamento,
+        telefone,
+        itens: items,
+        total: calculateGrandTotal()
+      };
 
-    // 3. Fallback for AI Studio preview: Just simulate success
-    setTimeout(() => {
-      updateStepDelay(5, 500);
+      const { fileName, blobUrl } = await generateClientPDF(tipo, pdfData);
+      
+      updateStepDelay(4, 1500);
+      updateStepDelay(5, 2000);
+
       setTimeout(() => {
         setModalState({
           isOpen: true,
           type: tipo,
           status: 'success',
           step: 5,
-          fileName: `[SIMULAÇÃO] ${tipo === 'orcamento' ? 'Orçamento' : 'Contrato'}.pdf`,
-          fileSize: '124.50 KB',
-          fileUrl: '#'
+          fileName: fileName,
+          fileSize: 'Gerado localmente',
+          fileUrl: blobUrl
         });
-      }, 1000);
-    }, 2500);
+      }, 2500);
+    } catch (error: any) {
+      setModalState({
+        isOpen: true,
+        type: tipo,
+        status: 'error',
+        step: 5,
+        errorMsg: error.message || 'Erro ao gerar o PDF.'
+      });
+    }
   };
 
   return (
