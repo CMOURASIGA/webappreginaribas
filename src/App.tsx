@@ -1,11 +1,24 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { productCategories } from './data/products';
+import { productCategories as defaultProductCategories } from './data/products';
 import { formatCPF, formatPhone, formatCurrency } from './utils/formatters';
 import { DocumentModal } from './components/DocumentModal';
 import { generateClientPDF } from './utils/pdfGenerator';
-import { OrderItem } from './types';
+import { OrderItem, Product } from './types';
+import { generatePriceTablePDF } from './utils/priceTableGenerator';
+
+type ProductCategories = Record<string, Product[]>;
+const PRICE_STORAGE_KEY = 'regina-ribas-product-prices-v1';
+
+const loadProductCategories = (): ProductCategories => {
+  try {
+    const saved = localStorage.getItem(PRICE_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : defaultProductCategories;
+  } catch {
+    return defaultProductCategories;
+  }
+};
 
 // Add Google Script Run type definition for TypeScript
 declare global {
@@ -65,6 +78,9 @@ export default function App() {
   const [dataEvento, setDataEvento] = useState('');
   const [localEvento, setLocalEvento] = useState('');
   const [frete, setFrete] = useState(0);
+  const [productCategories, setProductCategories] = useState<ProductCategories>(loadProductCategories);
+  const [showPriceManager, setShowPriceManager] = useState(false);
+  const [isSharingPrices, setIsSharingPrices] = useState(false);
   
   const [showSplash, setShowSplash] = useState(true);
 
@@ -87,6 +103,10 @@ export default function App() {
     status: 'loading',
     step: 1
   });
+
+  useEffect(() => {
+    localStorage.setItem(PRICE_STORAGE_KEY, JSON.stringify(productCategories));
+  }, [productCategories]);
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpfCliente(formatCPF(e.target.value));
@@ -120,7 +140,7 @@ export default function App() {
         if (field === 'productName') {
           // Find product to get price
           let price = 0;
-          for (const category of Object.values(productCategories)) {
+          for (const category of Object.values(productCategories) as Product[][]) {
             const prod = category.find(p => p.name === value);
             if (prod) {
               price = prod.price;
@@ -144,15 +164,47 @@ export default function App() {
 
   const calculateSubtotal = () => items.reduce((acc, item) => acc + item.total, 0);
 
-  const sharePriceList = () => {
-    const lines = ['*REGINA RIBAS DOCES FINOS*', '*Tabela de preços*', ''];
-    Object.entries(productCategories).forEach(([category, products]) => {
-      lines.push(`*${category}*`);
-      products.forEach(product => lines.push(`${product.name}: ${formatCurrency(product.price)}`));
-      lines.push('');
-    });
-    lines.push('Valores correspondentes à unidade dos doces.', 'Pedidos: (21) 96648-6222');
-    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
+  const updateProductPrice = (category: string, productName: string, price: number) => {
+    setProductCategories(current => ({
+      ...current,
+      [category]: current[category].map(product =>
+        product.name === productName ? { ...product, price } : product
+      )
+    }));
+  };
+
+  const restoreOriginalPrices = () => {
+    if (!window.confirm('Deseja restaurar todos os preços originais?')) return;
+    setProductCategories(defaultProductCategories);
+  };
+
+  const sharePriceList = async () => {
+    setIsSharingPrices(true);
+    try {
+      const { blob, fileName } = await generatePriceTablePDF(productCategories);
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share({
+          title: 'Tabela de preços Regina Ribas',
+          text: 'Segue a tabela de preços da Regina Ribas Doces Finos.',
+          files: [file]
+        });
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.alert('O PDF foi baixado. Anexe o arquivo em uma conversa do WhatsApp para compartilhar.');
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') window.alert('Não foi possível gerar a tabela de preços. Tente novamente.');
+    } finally {
+      setIsSharingPrices(false);
+    }
   };
 
   const validateForm = () => {
@@ -378,7 +430,7 @@ export default function App() {
                           required
                         >
                           <option value="" disabled>Selecione um produto...</option>
-                          {Object.entries(productCategories).map(([category, prods]) => (
+                          {(Object.entries(productCategories) as [string, Product[]][]).map(([category, prods]) => (
                             <optgroup key={category} label={category}>
                               {prods.map(p => (
                                 <option key={p.name} value={p.name}>{p.name}</option>
@@ -447,7 +499,10 @@ export default function App() {
             </div>
           </section>
 
-          <button type="button" onClick={sharePriceList} className="w-full min-h-14 bg-[#218838] text-white px-6 py-4 rounded-lg text-lg font-bold shadow hover:bg-[#196c2c] transition-colors">💬 Compartilhar tabela de preços no WhatsApp</button>
+          <div className="grid gap-3 md:grid-cols-2">
+            <button type="button" onClick={() => setShowPriceManager(true)} className="w-full min-h-14 border-2 border-[#8B4513] text-[#8B4513] px-6 py-4 rounded-lg text-lg font-bold hover:bg-[#FFF8E7] transition-colors">⚙️ Manutenção dos preços</button>
+            <button type="button" disabled={isSharingPrices} onClick={sharePriceList} className="w-full min-h-14 bg-[#218838] disabled:opacity-60 text-white px-6 py-4 rounded-lg text-lg font-bold shadow hover:bg-[#196c2c] transition-colors">{isSharingPrices ? 'Gerando PDF...' : '📄 Compartilhar tabela em PDF'}</button>
+          </div>
 
           <div className="flex flex-wrap justify-center gap-4 pt-4">
             <button 
@@ -478,6 +533,34 @@ export default function App() {
         onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))} 
         onRetry={() => generateDocument(modalState.type)}
       />
+
+      {showPriceManager && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="price-manager-title">
+          <div className="bg-white w-full max-w-4xl max-h-[95vh] overflow-y-auto rounded-t-2xl md:rounded-2xl shadow-2xl">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-5 flex items-start justify-between gap-4">
+              <div><h2 id="price-manager-title" className="text-2xl font-bold text-[#8B4513]">Manutenção dos preços</h2><p className="mt-1 text-gray-600">Altere os valores abaixo. O novo preço será salvo e usado automaticamente nos próximos orçamentos.</p></div>
+              <button type="button" onClick={() => setShowPriceManager(false)} aria-label="Fechar" className="min-w-12 min-h-12 rounded-lg text-2xl hover:bg-gray-100">×</button>
+            </div>
+            <div className="p-5 grid gap-7 md:grid-cols-2">
+              {(Object.entries(productCategories) as [string, Product[]][]).map(([category, products]) => (
+                <section key={category}>
+                  <h3 className="text-lg font-bold text-[#8B4513] border-b-2 border-[#D4AF37] pb-2 mb-2">{category}</h3>
+                  <div className="space-y-1">{products.map(product => (
+                    <label key={product.name} className="grid grid-cols-[1fr_120px] gap-3 items-center p-2 rounded-lg hover:bg-[#FAF9F6]">
+                      <span>{product.name}</span>
+                      <span className="flex items-center border-2 border-gray-200 rounded-lg px-2 focus-within:border-[#D4AF37]">R$<input type="number" min="0" step="0.01" value={product.price.toFixed(2)} onChange={e => updateProductPrice(category, product.name, Number(e.target.value) || 0)} className="w-full min-h-11 p-2 text-right outline-none" aria-label={`Preço de ${product.name}`} /></span>
+                    </label>
+                  ))}</div>
+                </section>
+              ))}
+            </div>
+            <div className="sticky bottom-0 bg-white border-t p-4 flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <button type="button" onClick={restoreOriginalPrices} className="min-h-12 px-5 rounded-lg border-2 border-gray-300 font-bold">Restaurar preços originais</button>
+              <button type="button" onClick={() => setShowPriceManager(false)} className="min-h-12 px-7 rounded-lg bg-[#8B4513] text-white font-bold">Concluir</button>
+            </div>
+          </div>
+        </div>
+      )}
       </motion.div>
     </>
   );
