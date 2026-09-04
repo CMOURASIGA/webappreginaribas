@@ -11,13 +11,15 @@ interface DocumentData {
   formaPagamento: string;
   telefone: string;
   itens: OrderItem[];
+  frete: number;
+  subtotal: number;
   total: number;
 }
 
-const PRIMARY_COLOR = [139, 69, 19]; // #8B4513
-const SECONDARY_COLOR = [212, 175, 55]; // #D4AF37
-const TEXT_COLOR = [47, 79, 79]; // #2F4F4F
-const LIGHT_BG = [245, 245, 220]; // #F5F5DC
+const PRIMARY_COLOR: [number, number, number] = [139, 69, 19]; // #8B4513
+const SECONDARY_COLOR: [number, number, number] = [212, 175, 55]; // #D4AF37
+const TEXT_COLOR: [number, number, number] = [47, 79, 79]; // #2F4F4F
+const LIGHT_BG: [number, number, number] = [245, 245, 220]; // #F5F5DC
 
 const formatCurrency = (value: number) => {
   return `R$ ${value.toFixed(2).replace('.', ',')}`;
@@ -178,6 +180,16 @@ export const generateClientPDF = async (type: 'orcamento' | 'contrato', data: Do
     formatCurrency(item.unitPrice),
     formatCurrency(item.total)
   ]);
+
+  tableData.push([
+    { content: 'SUBTOTAL DOS PRODUTOS', colSpan: 3, styles: { halign: 'left', fontStyle: 'bold' } },
+    { content: formatCurrency(data.subtotal), styles: { fontStyle: 'bold', halign: 'right' } }
+  ] as any);
+
+  if (data.frete > 0) tableData.push([
+    { content: 'FRETE', colSpan: 3, styles: { halign: 'left', fontStyle: 'bold' } },
+    { content: formatCurrency(data.frete), styles: { fontStyle: 'bold', halign: 'right' } }
+  ] as any);
 
   tableData.push([
     { content: 'VALOR TOTAL', colSpan: 3, styles: { halign: 'left', fontStyle: 'bold' } },
