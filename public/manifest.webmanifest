@@ -1,0 +1,14 @@
+{
+  "name": "Regina Ribas Doces Finos",
+  "short_name": "Regina Ribas",
+  "description": "Gerador de orçamentos, contratos e tabela de preços",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F2",
+  "theme_color": "#8B4513",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
