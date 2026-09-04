@@ -502,8 +502,11 @@ export default function App() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.unitPrice ? item.unitPrice.toFixed(2) : '0.00'}
-                          onChange={e => handleItemChange(item.id, 'unitPrice', Number(e.target.value) || 0)}
+                          key={`${item.id}-${item.productName}-${item.unitPrice}`}
+                          defaultValue={item.unitPrice ? item.unitPrice.toFixed(2) : '0.00'}
+                          onFocus={e => e.currentTarget.select()}
+                          onBlur={e => handleItemChange(item.id, 'unitPrice', Number(e.target.value.replace(',', '.')) || 0)}
+                          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                           aria-label={`Valor unitário de ${item.productName || 'produto'}`}
                           className="w-full min-w-24 p-2 border-2 border-gray-200 rounded text-center focus:outline-none focus:border-[#D4AF37]"
                         />
@@ -596,7 +599,7 @@ export default function App() {
                   <div className="space-y-1">{products.map(product => (
                     <label key={product.name} className="grid grid-cols-[1fr_120px] gap-3 items-center p-2 rounded-lg hover:bg-[#FAF9F6]">
                       <span>{product.name}</span>
-                      <span className="flex items-center border-2 border-gray-200 rounded-lg px-2 focus-within:border-[#D4AF37]">R$<input type="number" min="0" step="0.01" value={product.price.toFixed(2)} onChange={e => updateProductPrice(category, product.name, Number(e.target.value) || 0)} className="w-full min-h-11 p-2 text-right outline-none" aria-label={`Preço de ${product.name}`} /></span>
+                      <span className="flex items-center border-2 border-gray-200 rounded-lg px-2 focus-within:border-[#D4AF37]">R$<input key={`${product.name}-${product.price}`} type="number" min="0" step="0.01" defaultValue={product.price.toFixed(2)} onFocus={e => e.currentTarget.select()} onBlur={e => updateProductPrice(category, product.name, Number(e.target.value.replace(',', '.')) || 0)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} className="w-full min-h-11 p-2 text-right outline-none" aria-label={`Preço de ${product.name}`} /></span>
                     </label>
                   ))}</div>
                 </section>
