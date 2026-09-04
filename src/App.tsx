@@ -64,6 +64,7 @@ export default function App() {
   const [evento, setEvento] = useState('');
   const [dataEvento, setDataEvento] = useState('');
   const [localEvento, setLocalEvento] = useState('');
+  const [frete, setFrete] = useState(0);
   
   const [showSplash, setShowSplash] = useState(true);
 
@@ -138,7 +139,20 @@ export default function App() {
   };
 
   const calculateGrandTotal = () => {
-    return items.reduce((acc, item) => acc + item.total, 0);
+    return calculateSubtotal() + frete;
+  };
+
+  const calculateSubtotal = () => items.reduce((acc, item) => acc + item.total, 0);
+
+  const sharePriceList = () => {
+    const lines = ['*REGINA RIBAS DOCES FINOS*', '*Tabela de preços*', ''];
+    Object.entries(productCategories).forEach(([category, products]) => {
+      lines.push(`*${category}*`);
+      products.forEach(product => lines.push(`${product.name}: ${formatCurrency(product.price)}`));
+      lines.push('');
+    });
+    lines.push('Valores correspondentes à unidade dos doces.', 'Pedidos: (21) 96648-6222');
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
   };
 
   const validateForm = () => {
@@ -174,6 +188,7 @@ export default function App() {
       dataEvento,
       formaPagamento,
       telefone,
+      frete,
       itens: items.map(item => ({
         produto: item.productName,
         quantidade: item.quantity,
@@ -235,6 +250,8 @@ export default function App() {
         formaPagamento,
         telefone,
         itens: items,
+        frete,
+        subtotal: calculateSubtotal(),
         total: calculateGrandTotal()
       };
 
@@ -277,22 +294,23 @@ export default function App() {
         transition={{ duration: 0.8 }}
         className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] font-serif flex flex-col"
       >
-        <header className="bg-white text-[#8B4513] text-center py-8 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
+        <header className="bg-white text-[#8B4513] text-center py-6 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
           <img src="https://i.imgur.com/HnA5zoC.png" alt="Regina Ribas Logo" className="w-32 h-auto mb-4 drop-shadow-md mix-blend-multiply" referrerPolicy="no-referrer" />
           <h1 className="text-3xl tracking-widest font-bold mb-2">Regina Ribas</h1>
           <p className="text-sm tracking-widest opacity-90 font-bold">DOCES FINOS</p>
         </header>
 
-        <main className="flex-1 max-w-4xl w-full mx-auto my-8 bg-white p-6 md:p-10 rounded-xl shadow-xl">
+        <main className="flex-1 max-w-4xl w-full mx-auto my-4 md:my-8 bg-white p-4 md:p-10 rounded-xl shadow-xl">
         <div className="flex justify-between items-center border-b-2 border-[#D4AF37] pb-2 mb-6">
-          <h2 className="text-2xl text-[#8B4513] text-center w-full">Gerador de Orçamentos e Contratos</h2>
+          <div className="w-full text-center"><h2 className="text-2xl text-[#8B4513] font-bold">Faça o orçamento em 3 passos</h2><p className="mt-2 text-base text-[#2F4F4F]">Preencha os dados, escolha os produtos e confira o total. Os campos com * são obrigatórios.</p></div>
         </div>
 
         <form className="space-y-8" onSubmit={e => e.preventDefault()}>
           
           {/* Dados do Cliente */}
           <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
-            <h3 className="text-lg text-[#8B4513] mb-4 font-bold">📋 Dados do Cliente</h3>
+            <h3 className="text-xl text-[#8B4513] mb-1 font-bold">1. Dados do Cliente</h3>
+            <p className="mb-4 text-sm text-gray-600">Informe quem está solicitando o orçamento.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Nome do Cliente *</label>
@@ -315,7 +333,8 @@ export default function App() {
 
           {/* Dados do Evento */}
           <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
-            <h3 className="text-lg text-[#8B4513] mb-4 font-bold">🎉 Dados do Evento</h3>
+            <h3 className="text-xl text-[#8B4513] mb-1 font-bold">2. Dados do Evento</h3>
+            <p className="mb-4 text-sm text-gray-600">Informe quando e onde será a entrega.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Tipo de Evento *</label>
@@ -334,7 +353,8 @@ export default function App() {
 
           {/* Itens do Orçamento */}
           <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
-            <h3 className="text-lg text-[#8B4513] mb-4 font-bold">🍰 Itens do Orçamento</h3>
+            <h3 className="text-xl text-[#8B4513] mb-1 font-bold">3. Escolha os Produtos</h3>
+            <p className="mb-4 text-sm text-gray-600">Selecione o doce, informe a quantidade e altere o valor unitário se for necessário.</p>
             
             <div className="overflow-x-auto mb-4">
               <table className="w-full bg-white rounded-lg overflow-hidden border-collapse">
@@ -377,12 +397,15 @@ export default function App() {
                           required
                         />
                       </td>
-                      <td className="p-2 border-x border-gray-200 bg-gray-50">
+                      <td className="p-2 border-x border-gray-200">
                         <input 
-                          type="text" 
+                          type="number"
+                          min="0"
+                          step="0.01"
                           value={item.unitPrice ? item.unitPrice.toFixed(2) : '0.00'}
-                          readOnly
-                          className="w-full p-2 bg-transparent text-center focus:outline-none"
+                          onChange={e => handleItemChange(item.id, 'unitPrice', Number(e.target.value) || 0)}
+                          aria-label={`Valor unitário de ${item.productName || 'produto'}`}
+                          className="w-full min-w-24 p-2 border-2 border-gray-200 rounded text-center focus:outline-none focus:border-[#D4AF37]"
                         />
                       </td>
                       <td className="p-2 border-x border-gray-200 bg-gray-50">
@@ -408,16 +431,23 @@ export default function App() {
             </div>
 
             <button 
+              type="button"
               onClick={handleAddItem}
               className="mb-4 text-[#8B4513] font-bold py-2 px-4 rounded border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-white transition-colors"
             >
               + Adicionar Item
             </button>
 
-            <div className="bg-[#F5F5DC] border-2 border-[#D4AF37] rounded-lg p-4 text-right text-2xl font-bold text-[#8B4513]">
-              Total: {formatCurrency(calculateGrandTotal())}
+            <div className="mt-4 grid gap-4 md:grid-cols-2 bg-[#F5F5DC] border-2 border-[#D4AF37] rounded-lg p-4">
+              <label className="font-bold text-[#2F4F4F]">Frete, opcional
+                <input type="number" min="0" step="0.01" value={frete || ''} onChange={e => setFrete(Number(e.target.value) || 0)} className="mt-1 w-full min-h-12 p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-[#D4AF37]" placeholder="0,00" />
+                <span className="block mt-1 text-sm font-normal">Deixe vazio quando não houver frete.</span>
+              </label>
+              <div className="text-right text-[#8B4513]"><p>Produtos: <strong>{formatCurrency(calculateSubtotal())}</strong></p><p>Frete: <strong>{formatCurrency(frete)}</strong></p><p className="mt-2 pt-2 border-t border-[#D4AF37] text-2xl font-bold">Total: {formatCurrency(calculateGrandTotal())}</p></div>
             </div>
           </section>
+
+          <button type="button" onClick={sharePriceList} className="w-full min-h-14 bg-[#218838] text-white px-6 py-4 rounded-lg text-lg font-bold shadow hover:bg-[#196c2c] transition-colors">💬 Compartilhar tabela de preços no WhatsApp</button>
 
           <div className="flex flex-wrap justify-center gap-4 pt-4">
             <button 
