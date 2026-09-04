@@ -89,6 +89,7 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   const [showSplash, setShowSplash] = useState(true);
 
@@ -247,18 +248,31 @@ export default function App() {
   };
 
   const validateForm = () => {
-    if (!nomeCliente || !cpfCliente || !evento || !localEvento || !dataEvento || !formaPagamento || !telefone) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+    const errors: Record<string, string> = {};
+    if (!nomeCliente.trim()) errors.nomeCliente = 'Informe o nome completo do cliente.';
+    if (!cpfCliente.trim()) errors.cpfCliente = 'Informe o CPF do cliente.';
+    if (!telefone.trim()) errors.telefone = 'Informe o telefone para contato.';
+    if (!formaPagamento.trim()) errors.formaPagamento = 'Informe a forma de pagamento.';
+    if (!evento.trim()) errors.evento = 'Informe o tipo de evento.';
+    if (!dataEvento) errors.dataEvento = 'Informe a data do evento.';
+    if (!localEvento.trim()) errors.localEvento = 'Informe o local do evento.';
+    if (items.some(item => !item.productName || item.quantity <= 0 || item.unitPrice < 0)) errors.items = 'Confira os produtos. Selecione o produto e informe quantidade e valor válidos.';
+    setValidationErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => document.querySelector('[data-field-error="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
       return false;
-    }
-    for (const item of items) {
-      if (!item.productName || item.quantity <= 0 || item.unitPrice < 0) {
-        alert('Por favor, preencha todos os itens corretamente.');
-        return false;
-      }
     }
     return true;
   };
+
+  const clearFieldError = (field: string) => setValidationErrors(current => {
+    if (!current[field]) return current;
+    const next = { ...current };
+    delete next[field];
+    return next;
+  });
+
+  const errorLabel = (field: string) => validationErrors[field] ? <span role="alert" className="mt-1 block text-sm font-bold text-red-700">{validationErrors[field]}</span> : null;
 
   const updateStepDelay = (stepNum: number, delayMs: number) => {
     setTimeout(() => {
@@ -414,19 +428,23 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Nome do Cliente *</label>
-                <input type="text" value={nomeCliente} onChange={e => setNomeCliente(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="Nome completo" required />
+                <input data-field-error={Boolean(validationErrors.nomeCliente)} type="text" value={nomeCliente} onChange={e => { setNomeCliente(e.target.value); clearFieldError('nomeCliente'); }} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.nomeCliente ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="Nome completo" required />
+                {errorLabel('nomeCliente')}
               </div>
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">CPF do Cliente *</label>
-                <input type="text" value={cpfCliente} onChange={handleCpfChange} maxLength={14} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="000.000.000-00" required />
+                <input data-field-error={Boolean(validationErrors.cpfCliente)} type="text" value={cpfCliente} onChange={e => { handleCpfChange(e); clearFieldError('cpfCliente'); }} maxLength={14} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.cpfCliente ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="000.000.000-00" required />
+                {errorLabel('cpfCliente')}
               </div>
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Telefone *</label>
-                <input type="tel" value={telefone} onChange={handlePhoneChange} maxLength={15} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="(00) 00000-0000" required />
+                <input data-field-error={Boolean(validationErrors.telefone)} type="tel" value={telefone} onChange={e => { handlePhoneChange(e); clearFieldError('telefone'); }} maxLength={15} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.telefone ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="(00) 00000-0000" required />
+                {errorLabel('telefone')}
               </div>
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Forma de Pagamento *</label>
-                <input type="text" value={formaPagamento} onChange={e => setFormaPagamento(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="Ex: PIX, Depósito" required />
+                <input data-field-error={Boolean(validationErrors.formaPagamento)} type="text" value={formaPagamento} onChange={e => { setFormaPagamento(e.target.value); clearFieldError('formaPagamento'); }} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.formaPagamento ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="Ex: PIX, Depósito" required />
+                {errorLabel('formaPagamento')}
               </div>
             </div>
           </section>
@@ -438,15 +456,18 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Tipo de Evento *</label>
-                <input type="text" value={evento} onChange={e => setEvento(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="Ex: Casamento, Aniversário" required />
+                <input data-field-error={Boolean(validationErrors.evento)} type="text" value={evento} onChange={e => { setEvento(e.target.value); clearFieldError('evento'); }} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.evento ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="Ex: Casamento, Aniversário" required />
+                {errorLabel('evento')}
               </div>
               <div>
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Data do Evento *</label>
-                <input type="date" value={dataEvento} onChange={e => setDataEvento(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" required />
+                <input data-field-error={Boolean(validationErrors.dataEvento)} type="date" value={dataEvento} onChange={e => { setDataEvento(e.target.value); clearFieldError('dataEvento'); }} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.dataEvento ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} required />
+                {errorLabel('dataEvento')}
               </div>
               <div className="md:col-span-2">
                 <label className="block font-bold mb-1 text-[#2F4F4F] text-sm">Local do Evento *</label>
-                <input type="text" value={localEvento} onChange={e => setLocalEvento(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="Endereço completo" required />
+                <input data-field-error={Boolean(validationErrors.localEvento)} type="text" value={localEvento} onChange={e => { setLocalEvento(e.target.value); clearFieldError('localEvento'); }} className={`w-full p-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors ${validationErrors.localEvento ? 'border-red-600 bg-red-50' : 'border-gray-200'}`} placeholder="Endereço completo" required />
+                {errorLabel('localEvento')}
               </div>
             </div>
           </section>
@@ -455,6 +476,7 @@ export default function App() {
           <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
             <h3 className="text-xl text-[#8B4513] mb-1 font-bold">3. Escolha os Produtos</h3>
             <p className="mb-4 text-sm text-gray-600">Selecione o doce, informe a quantidade e altere o valor unitário se for necessário.</p>
+            {validationErrors.items && <div data-field-error="true" role="alert" className="mb-4 rounded-lg border-2 border-red-600 bg-red-50 p-3 font-bold text-red-700">{validationErrors.items}</div>}
             
             <div className="overflow-x-auto mb-4">
               <table className="w-full bg-white rounded-lg overflow-hidden border-collapse">
@@ -473,7 +495,7 @@ export default function App() {
                       <td className="p-2 border-x border-gray-200">
                         <select 
                           value={item.productName}
-                          onChange={e => handleItemChange(item.id, 'productName', e.target.value)}
+                          onChange={e => { handleItemChange(item.id, 'productName', e.target.value); clearFieldError('items'); }}
                           className="w-full p-2 border-2 border-gray-200 rounded focus:outline-none focus:border-[#D4AF37]"
                           required
                         >
@@ -492,7 +514,7 @@ export default function App() {
                           type="number" 
                           min="1" 
                           value={item.quantity || ''}
-                          onChange={e => handleItemChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                          onChange={e => { handleItemChange(item.id, 'quantity', parseInt(e.target.value) || 0); clearFieldError('items'); }}
                           className="w-full p-2 border-2 border-gray-200 rounded text-center focus:outline-none focus:border-[#D4AF37]"
                           required
                         />
@@ -505,7 +527,7 @@ export default function App() {
                           key={`${item.id}-${item.productName}-${item.unitPrice}`}
                           defaultValue={item.unitPrice ? item.unitPrice.toFixed(2) : '0.00'}
                           onFocus={e => e.currentTarget.select()}
-                          onBlur={e => handleItemChange(item.id, 'unitPrice', Number(e.target.value.replace(',', '.')) || 0)}
+                          onBlur={e => { handleItemChange(item.id, 'unitPrice', Number(e.target.value.replace(',', '.')) || 0); clearFieldError('items'); }}
                           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                           aria-label={`Valor unitário de ${item.productName || 'produto'}`}
                           className="w-full min-w-24 p-2 border-2 border-gray-200 rounded text-center focus:outline-none focus:border-[#D4AF37]"
