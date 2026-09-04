@@ -3,3 +3,40 @@
 body { margin: 0; min-width: 320px; font-family: Arial, Helvetica, sans-serif; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+
+* { box-sizing: border-box; }
+input, select, button { max-width: 100%; }
+
+@media (max-width: 767px) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tbody { display: grid; gap: 1rem; }
+  tbody tr {
+    overflow: hidden;
+    border: 2px solid #e2ddd2;
+    border-radius: 0.75rem;
+    background: white;
+  }
+  tbody td {
+    display: grid;
+    grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    border: 0;
+    border-bottom: 1px solid #eee9df;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  tbody td:last-child { border-bottom: 0; }
+  tbody td::before {
+    content: attr(data-label);
+    color: #754019;
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+  tbody td input, tbody td select { min-width: 0; width: 100%; }
+  tbody td input { text-align: left !important; }
+  tbody td button { width: 100%; min-height: 44px; }
+}
