@@ -35,6 +35,11 @@ declare global {
   }
 }
 
+interface InstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 function SplashScreen({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onComplete, 2500);
@@ -81,6 +86,9 @@ export default function App() {
   const [productCategories, setProductCategories] = useState<ProductCategories>(loadProductCategories);
   const [showPriceManager, setShowPriceManager] = useState(false);
   const [isSharingPrices, setIsSharingPrices] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
   
   const [showSplash, setShowSplash] = useState(true);
 
@@ -107,6 +115,37 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(PRICE_STORAGE_KEY, JSON.stringify(productCategories));
   }, [productCategories]);
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+    setIsInstalled(Boolean(standalone));
+
+    const capturePrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
+    const installed = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+      setShowInstallHelp(false);
+    };
+    window.addEventListener('beforeinstallprompt', capturePrompt);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', capturePrompt);
+      window.removeEventListener('appinstalled', installed);
+    };
+  }, []);
+
+  const requestInstallation = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') setInstallPrompt(null);
+      return;
+    }
+    setShowInstallHelp(true);
+  };
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpfCliente(formatCPF(e.target.value));
@@ -346,11 +385,20 @@ export default function App() {
         transition={{ duration: 0.8 }}
         className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] font-serif flex flex-col"
       >
-        <header className="bg-white text-[#8B4513] text-center py-6 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
+      <header className="bg-white text-[#8B4513] text-center py-6 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
           <img src="https://i.imgur.com/HnA5zoC.png" alt="Regina Ribas Logo" className="w-32 h-auto mb-4 drop-shadow-md mix-blend-multiply" referrerPolicy="no-referrer" />
           <h1 className="text-3xl tracking-widest font-bold mb-2">Regina Ribas</h1>
           <p className="text-sm tracking-widest opacity-90 font-bold">DOCES FINOS</p>
-        </header>
+      </header>
+
+      {!isInstalled && (
+        <aside className="sticky top-0 z-30 border-b border-[#D4AF37] bg-[#FFF8E7] px-4 py-3 shadow-sm">
+          <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 sm:flex-row">
+            <div className="text-center sm:text-left"><strong className="block text-[#8B4513]">Instale no seu celular</strong><span className="text-sm">Use o sistema como um aplicativo e encontre-o na tela inicial.</span></div>
+            <button type="button" onClick={requestInstallation} className="min-h-12 w-full rounded-lg bg-[#8B4513] px-6 py-3 font-bold text-white sm:w-auto">📲 Instalar no celular</button>
+          </div>
+        </aside>
+      )}
 
         <main className="flex-1 max-w-4xl w-full mx-auto my-4 md:my-8 bg-white p-4 md:p-10 rounded-xl shadow-xl">
         <div className="flex justify-between items-center border-b-2 border-[#D4AF37] pb-2 mb-6">
@@ -558,6 +606,20 @@ export default function App() {
               <button type="button" onClick={restoreOriginalPrices} className="min-h-12 px-5 rounded-lg border-2 border-gray-300 font-bold">Restaurar preços originais</button>
               <button type="button" onClick={() => setShowPriceManager(false)} className="min-h-12 px-7 rounded-lg bg-[#8B4513] text-white font-bold">Concluir</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showInstallHelp && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="install-help-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 id="install-help-title" className="text-2xl font-bold text-[#8B4513]">Instalar no celular</h2>
+            {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+              <ol className="mt-4 list-decimal space-y-3 pl-6 text-base"><li>Abra este link pelo navegador Safari.</li><li>Toque no botão Compartilhar, o quadrado com uma seta para cima.</li><li>Escolha “Adicionar à Tela de Início”.</li><li>Toque em “Adicionar”.</li></ol>
+            ) : (
+              <div className="mt-4 space-y-3"><p>Abra o menu do navegador, geralmente representado por três pontos.</p><p>Escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.</p><p>Se essa opção não aparecer, atualize o navegador e abra o link novamente.</p></div>
+            )}
+            <button type="button" onClick={() => setShowInstallHelp(false)} className="mt-6 min-h-12 w-full rounded-lg bg-[#8B4513] px-5 py-3 font-bold text-white">Entendi</button>
           </div>
         </div>
       )}
