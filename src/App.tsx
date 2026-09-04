@@ -397,7 +397,7 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: showSplash ? 0 : 1 }}
         transition={{ duration: 0.8 }}
-        className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] font-serif flex flex-col"
+        className="min-h-screen bg-gradient-to-br from-[#E5E5E5] to-[#F5F5DC] flex flex-col"
       >
       <header className="bg-white text-[#8B4513] text-center py-6 shadow-md flex flex-col items-center border-b-4 border-[#D4AF37]">
           <img src="https://i.imgur.com/HnA5zoC.png" alt="Regina Ribas Logo" className="w-32 h-auto mb-4 drop-shadow-md mix-blend-multiply" referrerPolicy="no-referrer" />
@@ -406,10 +406,10 @@ export default function App() {
       </header>
 
       {!isInstalled && (
-        <aside className="sticky top-0 z-30 border-b border-[#D4AF37] bg-[#FFF8E7] px-4 py-3 shadow-sm">
+        <aside className="sticky top-0 z-30 border-b border-[#D4AF37] bg-[#FFF8E7] px-3 py-2 sm:px-4 sm:py-3 shadow-sm">
           <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 sm:flex-row">
-            <div className="text-center sm:text-left"><strong className="block text-[#8B4513]">Instale no seu celular</strong><span className="text-sm">Use o sistema como um aplicativo e encontre-o na tela inicial.</span></div>
-            <button type="button" onClick={requestInstallation} className="min-h-12 w-full rounded-lg bg-[#8B4513] px-6 py-3 font-bold text-white sm:w-auto">📲 Instalar no celular</button>
+            <div className="text-center sm:text-left"><strong className="block text-base text-[#8B4513]">Instale no seu celular</strong><span className="text-sm">Acesse pela tela inicial como um aplicativo.</span></div>
+            <button type="button" onClick={requestInstallation} className="min-h-11 w-full rounded-lg bg-[#8B4513] px-5 py-2 text-base font-bold text-white sm:w-auto">📲 Instalar</button>
           </div>
         </aside>
       )}
@@ -422,7 +422,7 @@ export default function App() {
         <form className="space-y-8" onSubmit={e => e.preventDefault()}>
           
           {/* Dados do Cliente */}
-          <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
+          <section className="bg-[#FAF9F6] p-4 sm:p-6 rounded-lg border-l-4 border-[#D4AF37]">
             <h3 className="text-xl text-[#8B4513] mb-1 font-bold">1. Dados do Cliente</h3>
             <p className="mb-4 text-sm text-gray-600">Informe quem está solicitando o orçamento.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -450,7 +450,7 @@ export default function App() {
           </section>
 
           {/* Dados do Evento */}
-          <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
+          <section className="bg-[#FAF9F6] p-4 sm:p-6 rounded-lg border-l-4 border-[#D4AF37]">
             <h3 className="text-xl text-[#8B4513] mb-1 font-bold">2. Dados do Evento</h3>
             <p className="mb-4 text-sm text-gray-600">Informe quando e onde será a entrega.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -473,7 +473,7 @@ export default function App() {
           </section>
 
           {/* Itens do Orçamento */}
-          <section className="bg-[#FAF9F6] p-6 rounded-lg border-l-4 border-[#D4AF37]">
+          <section className="bg-[#FAF9F6] p-4 sm:p-6 rounded-lg border-l-4 border-[#D4AF37]">
             <h3 className="text-xl text-[#8B4513] mb-1 font-bold">3. Escolha os Produtos</h3>
             <p className="mb-4 text-sm text-gray-600">Selecione o doce, informe a quantidade e altere o valor unitário se for necessário.</p>
             {validationErrors.items && <div data-field-error="true" role="alert" className="mb-4 rounded-lg border-2 border-red-600 bg-red-50 p-3 font-bold text-red-700">{validationErrors.items}</div>}
@@ -492,7 +492,7 @@ export default function App() {
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id} className="border-b border-gray-200">
-                      <td className="p-2 border-x border-gray-200">
+                      <td data-label="Produto" className="p-2 border-x border-gray-200">
                         <select 
                           value={item.productName}
                           onChange={e => { handleItemChange(item.id, 'productName', e.target.value); clearFieldError('items'); }}
@@ -509,7 +509,7 @@ export default function App() {
                           ))}
                         </select>
                       </td>
-                      <td className="p-2 border-x border-gray-200">
+                      <td data-label="Quantidade" className="p-2 border-x border-gray-200">
                         <input 
                           type="number" 
                           min="1" 
@@ -519,7 +519,7 @@ export default function App() {
                           required
                         />
                       </td>
-                      <td className="p-2 border-x border-gray-200">
+                      <td data-label="Valor unitário" className="p-2 border-x border-gray-200">
                         <input 
                           type="number"
                           min="0"
@@ -533,7 +533,7 @@ export default function App() {
                           className="w-full min-w-24 p-2 border-2 border-gray-200 rounded text-center focus:outline-none focus:border-[#D4AF37]"
                         />
                       </td>
-                      <td className="p-2 border-x border-gray-200 bg-gray-50">
+                      <td data-label="Total do produto" className="p-2 border-x border-gray-200 bg-gray-50">
                         <input 
                           type="text" 
                           value={item.total ? item.total.toFixed(2) : '0.00'}
@@ -541,7 +541,7 @@ export default function App() {
                           className="w-full p-2 bg-transparent text-right font-bold focus:outline-none text-[#2F4F4F]"
                         />
                       </td>
-                      <td className="p-2 border-x border-gray-200 text-center">
+                      <td data-label="Ação" className="p-2 border-x border-gray-200 text-center">
                         <button 
                           onClick={() => handleRemoveItem(item.id)}
                           className="bg-gradient-to-br from-[#CD5C5C] to-[#DC143C] text-white px-3 py-1 text-sm rounded hover:opacity-90 transition-opacity"
@@ -558,7 +558,7 @@ export default function App() {
             <button 
               type="button"
               onClick={handleAddItem}
-              className="mb-4 text-[#8B4513] font-bold py-2 px-4 rounded border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-white transition-colors"
+              className="mb-4 w-full sm:w-auto min-h-12 text-[#8B4513] font-bold py-2 px-4 rounded border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-white transition-colors"
             >
               + Adicionar Item
             </button>
@@ -619,7 +619,7 @@ export default function App() {
                 <section key={category}>
                   <h3 className="text-lg font-bold text-[#8B4513] border-b-2 border-[#D4AF37] pb-2 mb-2">{category}</h3>
                   <div className="space-y-1">{products.map(product => (
-                    <label key={product.name} className="grid grid-cols-[1fr_120px] gap-3 items-center p-2 rounded-lg hover:bg-[#FAF9F6]">
+                    <label key={product.name} className="grid grid-cols-[minmax(0,1fr)_110px] sm:grid-cols-[minmax(0,1fr)_120px] gap-2 sm:gap-3 items-center p-2 rounded-lg hover:bg-[#FAF9F6]">
                       <span>{product.name}</span>
                       <span className="flex items-center border-2 border-gray-200 rounded-lg px-2 focus-within:border-[#D4AF37]">R$<input key={`${product.name}-${product.price}`} type="number" min="0" step="0.01" defaultValue={product.price.toFixed(2)} onFocus={e => e.currentTarget.select()} onBlur={e => updateProductPrice(category, product.name, Number(e.target.value.replace(',', '.')) || 0)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} className="w-full min-h-11 p-2 text-right outline-none" aria-label={`Preço de ${product.name}`} /></span>
                     </label>
